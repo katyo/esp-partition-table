@@ -1,0 +1,175 @@
+name: Rust
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+
+  doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          components: rust-docs
+      - uses: Swatinem/rust-cache@v2
+      - name: Documentation
+        env:
+          DOCS_RS: 1
+        run: cargo doc --all --all-features
+
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: sksat/action-clippy@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          reporter: github-check
+          fail_on_error: true
+          clippy_flags: --all --all-targets --all-features
+
+  test:
+    needs:
+      - format
+      - doc
+      - check
+    strategy:
+      fail-fast: ${{ startsWith(github.ref, 'refs/tags/') }}
+      matrix:
+        include:
+          # Test features
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: "''"
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: md5
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: heapless
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: embedded-storage
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+
+          # Test targets
+          - task: test
+            rust: stable
+            target: i686-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+          - task: test
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+          - task: test
+            rust: stable
+            target: armv7-unknown-linux-gnueabihf
+            features: md5,heapless,embedded-storage
+            test_args: --no-run
+          - task: test
+            rust: stable
+            target: aarch64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+            test_args: --no-run
+          #- task: test
+          #  rust: stable
+          #  target: riscv32imc-unknown-none-elf
+          #  features: md5,heapless,embedded-storage
+          #  test_args: --no-run
+          #- task: test
+          #  rust: stable
+          #  target: riscv32imac-unknown-none-elf
+          #  features: md5,heapless,embedded-storage
+          #  test_args: --no-run
+
+          # Test channels
+          - task: channels
+            rust: stable
+            target: x86_64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+          - task: channels
+            rust: beta
+            target: x86_64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+          - task: channels
+            rust: nightly
+            target: x86_64-unknown-linux-gnu
+            features: md5,heapless,embedded-storage
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup cross linux toolchain
+        if: contains(matrix.target, '-linux-') && !startsWith(matrix.target, 'x86_64-')
+        run: |
+          GCC_TARGET=$(printf "${{ matrix.target }}" | sed 's/-unknown-/-/' | sed 's/arm[^-]*/arm/g')
+          ENV_TARGET=$(printf "${{ matrix.target }}" | tr '-' '_')
+          ENV_TARGET_UC=$(printf "${ENV_TARGET}" | tr '[[:lower:]]' '[[:upper:]]')
+          sudo apt-get update -y
+          sudo apt-get install -y --install-recommends gcc-${GCC_TARGET}
+          echo "CC_${ENV_TARGET}=${GCC_TARGET}-gcc" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${ENV_TARGET_UC}_LINKER=${GCC_TARGET}-gcc" >> $GITHUB_ENV
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          target: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Update deps
+        run: cargo update
+      - name: Build
+        run: cargo build --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }}
+      - name: Test
+        timeout-minutes: 2
+        env:
+          RUST_BACKTRACE: full
+        run: cargo test --all --target ${{ matrix.target }} --no-default-features --features ${{ matrix.features }} ${{ matrix.test_args }}
+
+  publish:
+    if: github.repository == 'katyo/esp-partition-table' && startsWith(github.ref, 'refs/tags/')
+    needs:
+      - test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Publish crates
+        uses: katyo/publish-crates@v1
+        with:
+          registry-token: ${{ secrets.CRATES_TOKEN }}
+          args: --no-verify
+          #dry-run: true
