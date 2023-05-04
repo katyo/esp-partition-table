@@ -1,0 +1,26 @@
+[package]
+name = "esp-partition-table"
+version = "0.1.0"
+edition = "2021"
+authors = ["K. <kayoillumium.org>"]
+description = "Read/write ESP flash partition table"
+repository = "https://github.com/katyo/esp-partition-table"
+license = "MIT OR Apache-2.0"
+keywords = ["embedded-storage", "esp", "esp32", "no-std", "partition-table"]
+categories = ["embedded", "hardware-support", "no-std"]
+
+[dependencies.embedded-storage]
+version = "0.3"
+optional = true
+
+[dependencies.heapless]
+version = "0.7"
+optional = true
+
+[dependencies.md5]
+version = "0.7"
+default-features = false
+optional = true
+
+[features]
+default = ["embedded-storage", "md5"]

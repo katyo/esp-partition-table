@@ -1,0 +1,11 @@
+# Offset must be multiple of 4kB and for
+# app partitions it must be aligned by 64kB.
+#
+# Name,   Type, SubType, Offset,  Size, Flags
+# bootloader           4K,        28K,
+# partitions          32K,         4K,
+nvs,      data, nvs,  36K,        24K,
+phy_init, data, phy,     ,         4K,
+factory,  app,  factory, ,         3M,
+coredump, data, coredump,,        64K,
+nvs_ext,  data, nvs,     ,        64K,
