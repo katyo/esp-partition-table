@@ -12,6 +12,9 @@ mod utils;
 #[cfg(feature = "embedded-storage")]
 mod estor;
 
+#[cfg(feature = "embedded-storage")]
+mod norfl;
+
 use utils::SliceExt;
 
 pub use entry::{Md5Data, PartitionBuffer, PartitionEntry, PartitionMd5};
@@ -21,3 +24,6 @@ pub use types::{AppPartitionType, DataPartitionType, PartitionType};
 
 #[cfg(feature = "embedded-storage")]
 pub use estor::{PartitionStorageIter, StorageOpError};
+
+#[cfg(feature = "embedded-storage")]
+pub use norfl::{NorFlashOpError, PartitionNorFlashIter};
