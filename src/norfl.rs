@@ -1,6 +1,6 @@
 use crate::{
     PartitionBuffer, PartitionEntry, PartitionError, PartitionReaderState, PartitionTable,
-    PartitionWriterState, SliceExt,
+    PartitionWriterState,
 };
 use core::{mem::MaybeUninit, ops::Deref};
 use embedded_storage::nor_flash::{NorFlash, ReadNorFlash};
@@ -98,7 +98,9 @@ impl PartitionTable {
                 return Err(PartitionError::TooManyData.into());
             }
 
-            let (head, rest) = data.split_array_mut_();
+            let (head, rest) = data
+                .split_first_chunk_mut()
+                .ok_or(PartitionError::NotEnoughData)?;
 
             state.write(head, partition)?;
 
@@ -111,7 +113,9 @@ impl PartitionTable {
                 return Err(PartitionError::TooManyData.into());
             }
 
-            let (head, rest) = data.split_array_mut_();
+            let (head, rest) = data
+                .split_first_chunk_mut()
+                .ok_or(PartitionError::NotEnoughData)?;
 
             state.write_md5(head)?;
 

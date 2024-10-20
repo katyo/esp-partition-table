@@ -15,8 +15,6 @@ mod estor;
 #[cfg(feature = "embedded-storage")]
 mod norfl;
 
-use utils::SliceExt;
-
 pub use entry::{Md5Data, PartitionBuffer, PartitionEntry, PartitionMd5};
 pub use result::PartitionError;
 pub use table::{PartitionReaderState, PartitionTable, PartitionWriterState};

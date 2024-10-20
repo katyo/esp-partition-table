@@ -1,4 +1,4 @@
-use crate::{Md5Data, PartitionBuffer, PartitionEntry, PartitionError, PartitionMd5, SliceExt};
+use crate::{Md5Data, PartitionBuffer, PartitionEntry, PartitionError, PartitionMd5};
 
 /// Partition table info
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -146,7 +146,11 @@ impl PartitionReaderState {
     pub fn read(&mut self, buffer: &PartitionBuffer) -> Result<PartitionEntry, PartitionError> {
         self.check()?;
 
-        let result = match *buffer.split_array_ref_().0 {
+        let result = match *buffer
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?
+            .0
+        {
             PartitionEntry::MAGIC => {
                 #[cfg(feature = "md5")]
                 if self.calc_md5 {
@@ -322,7 +326,7 @@ mod test {
         let data = &table[..];
         let mut reader = PartitionReaderState::new(0, data.len(), true);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Nvs));
         assert_eq!(part.offset, 36 << 10);
@@ -330,7 +334,7 @@ mod test {
         assert_eq!(part.name(), "nvs");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Phy));
         assert_eq!(part.offset, 60 << 10);
@@ -338,7 +342,7 @@ mod test {
         assert_eq!(part.name(), "phy_init");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::App(AppPartitionType::Factory));
         assert_eq!(part.offset, 64 << 10);
@@ -346,7 +350,7 @@ mod test {
         assert_eq!(part.name(), "factory");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::CoreDump));
         assert_eq!(part.offset, (64 << 10) + (3 << 20));
@@ -354,7 +358,7 @@ mod test {
         assert_eq!(part.name(), "coredump");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Nvs));
         assert_eq!(part.offset, (128 << 10) + (3 << 20));
@@ -362,7 +366,7 @@ mod test {
         assert_eq!(part.name(), "nvs_ext");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         assert!(matches!(
             reader.read(part).unwrap_err(),
             PartitionError::NotEnoughData
@@ -371,7 +375,7 @@ mod test {
             assert!(md5);
         }
 
-        let (part, _) = data.split_array_ref_();
+        let (part, _) = data.split_first_chunk().unwrap();
         assert!(matches!(
             reader.read(part).unwrap_err(),
             PartitionError::NotEnoughData
@@ -384,7 +388,7 @@ mod test {
         let data = &table[..];
         let mut reader = PartitionReaderState::new(0, data.len(), true);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Nvs));
         assert_eq!(part.offset, 36 << 10);
@@ -392,7 +396,7 @@ mod test {
         assert_eq!(part.name(), "nvs");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Ota));
         assert_eq!(part.offset, 52 << 10);
@@ -400,7 +404,7 @@ mod test {
         assert_eq!(part.name(), "otadata");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Phy));
         assert_eq!(part.offset, 60 << 10);
@@ -408,7 +412,7 @@ mod test {
         assert_eq!(part.name(), "phy_init");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::App(AppPartitionType::Factory));
         assert_eq!(part.offset, 64 << 10);
@@ -416,7 +420,7 @@ mod test {
         assert_eq!(part.name(), "factory");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::App(AppPartitionType::Ota(0)));
         assert_eq!(part.offset, (64 << 10) + (1 << 20));
@@ -424,7 +428,7 @@ mod test {
         assert_eq!(part.name(), "ota_0");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::App(AppPartitionType::Ota(1)));
         assert_eq!(part.offset, (64 << 10) + (2 << 20));
@@ -432,7 +436,7 @@ mod test {
         assert_eq!(part.name(), "ota_1");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::CoreDump));
         assert_eq!(part.offset, (64 << 10) + (3 << 20));
@@ -440,7 +444,7 @@ mod test {
         assert_eq!(part.name(), "coredump");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         let part = reader.read(part).unwrap();
         assert_eq!(part.type_, PartitionType::Data(DataPartitionType::Nvs));
         assert_eq!(part.offset, (128 << 10) + (3 << 20));
@@ -448,7 +452,7 @@ mod test {
         assert_eq!(part.name(), "nvs_ext");
         assert!(!part.encrypted);
 
-        let (part, data) = data.split_array_ref_();
+        let (part, data) = data.split_first_chunk().unwrap();
         assert!(matches!(
             reader.read(part).unwrap_err(),
             PartitionError::NotEnoughData
@@ -457,7 +461,7 @@ mod test {
             assert!(md5);
         }
 
-        let (part, _) = data.split_array_ref_();
+        let (part, _) = data.split_first_chunk().unwrap();
         assert!(matches!(
             reader.read(part).unwrap_err(),
             PartitionError::NotEnoughData
@@ -475,14 +479,14 @@ mod test {
         let mut writer = PartitionWriterState::new(0, dst_data.len(), true);
 
         loop {
-            let (src_part, next_src_data) = src_data.split_array_ref_();
+            let (src_part, next_src_data) = src_data.split_first_chunk().unwrap();
             src_data = next_src_data;
             let part = match reader.read(src_part) {
                 Ok(part) => Some(part),
                 Err(PartitionError::NotEnoughData) => None,
-                Err(error) => Err(error).unwrap(),
+                Err(error) => panic!("{error:?}"),
             };
-            let (dst_part, next_dst_data) = dst_data.split_array_mut_();
+            let (dst_part, next_dst_data) = dst_data.split_first_chunk_mut().unwrap();
             dst_data = next_dst_data;
             if let Some(part) = part {
                 writer.write(dst_part, part).unwrap();
@@ -514,14 +518,14 @@ mod test {
         let mut writer = PartitionWriterState::new(0, dst_data.len(), true);
 
         loop {
-            let (src_part, next_src_data) = src_data.split_array_ref_();
+            let (src_part, next_src_data) = src_data.split_first_chunk().unwrap();
             src_data = next_src_data;
             let part = match reader.read(src_part) {
                 Ok(part) => Some(part),
                 Err(PartitionError::NotEnoughData) => None,
-                Err(error) => Err(error).unwrap(),
+                Err(error) => panic!("{error:?}"),
             };
-            let (dst_part, next_dst_data) = dst_data.split_array_mut_();
+            let (dst_part, next_dst_data) = dst_data.split_first_chunk_mut().unwrap();
             dst_data = next_dst_data;
             if let Some(part) = part {
                 writer.write(dst_part, part).unwrap();

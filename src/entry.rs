@@ -1,4 +1,4 @@
-use crate::{utils, PartitionError, PartitionType, SliceExt};
+use crate::{utils, PartitionError, PartitionType};
 
 #[cfg(feature = "heapless")]
 use heapless::String;
@@ -121,30 +121,44 @@ impl PartitionEntry {
 
     /// Convert partition data from binary representation
     pub fn from_bytes(data: &PartitionBuffer) -> Result<Self, PartitionError> {
-        let (magic, data) = data.split_array_ref_();
+        let (magic, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         if magic != &Self::MAGIC {
             return Err(PartitionError::InvalidMagic);
         }
 
-        let (type_data, data) = data.split_array_ref_();
+        let (type_data, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         let type_ = type_data.try_into()?;
 
-        let (offset_data, data) = data.split_array_ref_();
+        let (offset_data, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         let offset = u32::from_le_bytes(*offset_data);
 
-        let (size_data, data) = data.split_array_ref_();
+        let (size_data, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         let size = u32::from_le_bytes(*size_data) as usize;
 
-        let (name_data, data) = data.split_array_ref_();
+        let (name_data, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         let _name_str = utils::name_from(name_data)?;
 
         #[cfg(feature = "heapless")]
-        let name = _name_str.into();
+        let name = _name_str
+            .try_into()
+            .map_err(|_| PartitionError::TooManyData)?;
 
         #[cfg(not(feature = "heapless"))]
         let name = *name_data;
 
-        let (flags_data, _) = data.split_array_ref_();
+        let (flags_data, _) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         let flags = u32::from_le_bytes(*flags_data);
 
         let encrypted = flags & 0x01 != 0;
@@ -162,19 +176,29 @@ impl PartitionEntry {
     pub fn to_bytes(&self, data: &mut PartitionBuffer) -> Result<(), PartitionError> {
         self.type_.check_offset(self.offset)?;
 
-        let (magic_data, data) = data.split_array_mut_();
+        let (magic_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *magic_data = Self::MAGIC;
 
-        let (type_data, data) = data.split_array_mut_();
+        let (type_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         self.type_.to_bytes(type_data)?;
 
-        let (offset_data, data) = data.split_array_mut_();
+        let (offset_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *offset_data = self.offset.to_le_bytes();
 
-        let (size_data, data) = data.split_array_mut_();
+        let (size_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *size_data = (self.size as u32).to_le_bytes();
 
-        let (name_data, data) = data.split_array_mut_();
+        let (name_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
 
         #[cfg(feature = "heapless")]
         utils::name_into(name_data, self.name.as_str())?;
@@ -184,7 +208,9 @@ impl PartitionEntry {
             *name_data = self.name;
         }
 
-        let (flags_data, _) = data.split_array_mut_();
+        let (flags_data, _) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *flags_data = (self.encrypted as u32).to_le_bytes();
 
         Ok(())
@@ -267,32 +293,44 @@ impl PartitionMd5 {
 
     /// Convert md5 data from binary representation
     pub fn from_bytes(data: &PartitionBuffer) -> Result<Self, PartitionError> {
-        let (magic, data) = data.split_array_ref_();
+        let (magic, data) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
         if magic != &Self::MAGIC {
             return Err(PartitionError::InvalidMagic);
         }
 
-        let (reserved_data, data) = data.split_array_ref_::<{ Self::RESERVED_SIZE }>();
+        let (reserved_data, data) = data
+            .split_first_chunk::<{ Self::RESERVED_SIZE }>()
+            .ok_or(PartitionError::NotEnoughData)?;
         for reserved in reserved_data {
             if *reserved != Self::RESERVED_DATA {
                 return Err(PartitionError::InvalidMagic);
             }
         }
 
-        let (md5_data, _) = data.split_array_ref_();
+        let (md5_data, _) = data
+            .split_first_chunk()
+            .ok_or(PartitionError::NotEnoughData)?;
 
         Ok(Self { data: *md5_data })
     }
 
     /// Convert md5 data to binary representation
     pub fn to_bytes(&self, data: &mut PartitionBuffer) -> Result<(), PartitionError> {
-        let (magic_data, data) = data.split_array_mut_();
+        let (magic_data, data) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *magic_data = Self::MAGIC;
 
-        let (reserved_data, data) = data.split_array_mut_::<{ Self::RESERVED_SIZE }>();
+        let (reserved_data, data) = data
+            .split_first_chunk_mut::<{ Self::RESERVED_SIZE }>()
+            .ok_or(PartitionError::NotEnoughData)?;
         reserved_data.fill(Self::RESERVED_DATA);
 
-        let (md5_data, _) = data.split_array_mut_();
+        let (md5_data, _) = data
+            .split_first_chunk_mut()
+            .ok_or(PartitionError::NotEnoughData)?;
         *md5_data = self.data;
 
         Ok(())
