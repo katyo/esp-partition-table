@@ -1,6 +1,6 @@
 [package]
 name = "esp-partition-table"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["K. <kayoillumium.org>"]
 description = "Read/write ESP flash partition table"
@@ -14,7 +14,7 @@ version = "0.3"
 optional = true
 
 [dependencies.heapless]
-version = "0.7"
+version = "0.8"
 optional = true
 
 [dependencies.md5]
