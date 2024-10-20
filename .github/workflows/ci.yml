@@ -11,7 +11,7 @@ jobs:
   format:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
         with:
@@ -24,7 +24,7 @@ jobs:
   doc:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
         with:
@@ -39,7 +39,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: nightly
@@ -129,7 +129,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup cross linux toolchain
         if: contains(matrix.target, '-linux-') && !startsWith(matrix.target, 'x86_64-')
         run: |
@@ -162,7 +162,7 @@ jobs:
       - test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@v1
         with:
