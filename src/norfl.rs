@@ -139,7 +139,7 @@ pub struct PartitionNorFlashIter<'s, S> {
     buffer: MaybeUninit<PartitionBuffer>,
 }
 
-impl<'s, S> PartitionNorFlashIter<'s, S> {
+impl<S> PartitionNorFlashIter<'_, S> {
     /// Read next partition entry
     pub fn next_partition(&mut self) -> Result<PartitionEntry, NorFlashOpError<S>>
     where
@@ -164,7 +164,7 @@ impl<'s, S> PartitionNorFlashIter<'s, S> {
     }
 }
 
-impl<'s, S> Deref for PartitionNorFlashIter<'s, S> {
+impl<S> Deref for PartitionNorFlashIter<'_, S> {
     type Target = PartitionReaderState;
 
     fn deref(&self) -> &Self::Target {
@@ -172,7 +172,7 @@ impl<'s, S> Deref for PartitionNorFlashIter<'s, S> {
     }
 }
 
-impl<'s, S> Iterator for PartitionNorFlashIter<'s, S>
+impl<S> Iterator for PartitionNorFlashIter<'_, S>
 where
     S: ReadNorFlash,
 {

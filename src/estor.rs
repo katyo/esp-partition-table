@@ -122,7 +122,7 @@ pub struct PartitionStorageIter<'s, S> {
     buffer: MaybeUninit<PartitionBuffer>,
 }
 
-impl<'s, S> PartitionStorageIter<'s, S> {
+impl<S> PartitionStorageIter<'_, S> {
     /// Read next partition entry
     pub fn next_partition(&mut self) -> Result<PartitionEntry, StorageOpError<S>>
     where
@@ -146,7 +146,7 @@ impl<'s, S> PartitionStorageIter<'s, S> {
     }
 }
 
-impl<'s, S> Deref for PartitionStorageIter<'s, S> {
+impl<S> Deref for PartitionStorageIter<'_, S> {
     type Target = PartitionReaderState;
 
     fn deref(&self) -> &Self::Target {
@@ -154,7 +154,7 @@ impl<'s, S> Deref for PartitionStorageIter<'s, S> {
     }
 }
 
-impl<'s, S> Iterator for PartitionStorageIter<'s, S>
+impl<S> Iterator for PartitionStorageIter<'_, S>
 where
     S: ReadStorage,
 {
