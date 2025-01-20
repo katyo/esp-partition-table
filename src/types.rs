@@ -206,6 +206,9 @@ pub enum DataPartitionType {
 
     /// SPIFFS partition
     SpiFfs = 0x82,
+
+    /// LittleFS partition
+    LittleFS = 0x83,
 }
 
 impl TryFrom<u8> for DataPartitionType {
@@ -223,6 +226,7 @@ impl TryFrom<u8> for DataPartitionType {
             0x80 => Self::EspHttpd,
             0x81 => Self::Fat,
             0x82 => Self::SpiFfs,
+            0x83 => Self::LittleFS,
             _ => return Err(PartitionError::InvalidSubType(raw)),
         })
     }
