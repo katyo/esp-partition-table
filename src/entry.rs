@@ -20,7 +20,7 @@ pub type PartitionBuffer = [u8; PartitionEntry::SIZE];
 ///  12 |  16 | Name
 ///  28 |   4 | Flags
 ///
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PartitionEntry {
     /// Partition type and subtype
     pub type_: PartitionType,
@@ -254,7 +254,7 @@ pub type Md5Data = [u8; 16];
 ///   2 |  14 | Reserved
 ///  16 |  16 | MD5 data
 ///
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PartitionMd5 {
     /// MD5 checksum data
     pub data: Md5Data,
